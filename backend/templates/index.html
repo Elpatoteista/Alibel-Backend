@@ -142,11 +142,14 @@
 
                 let msg = '';
                 let type = 'info';
+                let imageUrl = null;
 
                 if (status === 'verifying') {
                     const anomaly = data.anomaly_type || 'Anomalía Detectada';
                     msg = `ALERTA VISUAL: ${userId.substring(0,8)}... - ${anomaly}.`;
                     type = 'warning';
+                    // Pasamos la foto de evidencia si existe
+                    if (data.evidence_url) imageUrl = data.evidence_url;
                 } else if (status === 'alert') {
                     msg = `ALERTA CRÍTICA: Usuario ${userId.substring(0,8)}... no respondió a la verificación.`;
                     type = 'error';
@@ -158,7 +161,7 @@
                     type = 'info';
                 }
 
-                addEvent('Evento de Usuario', msg, type);
+                addEvent('Evento de Usuario', msg, type, imageUrl);
             } else if (data.type === 'video_frame') {
                 const userId = data.user_id;
                 let img = document.getElementById(`feed-img-${userId}`);
@@ -195,19 +198,25 @@
             document.getElementById('verifying-count').innerText = verifying;
         }
 
-        function addEvent(title, description, type) {
+        function addEvent(title, description, type, imageUrl = null) {
             const el = document.createElement('div');
             el.className = `event-item ${type}`;
             
             const time = new Date().toLocaleTimeString();
             
-            el.innerHTML = `
+            let htmlContent = `
                 <div class="event-time">${time}</div>
                 <div class="event-details">
                     <div class="event-title">${title}</div>
                     <div class="event-desc">${description}</div>
-                </div>
             `;
+            
+            if (imageUrl) {
+                htmlContent += `<img src="${imageUrl}" style="max-width: 100%; border-radius: 5px; margin-top: 10px; border: 1px solid rgba(255,51,102,0.5); box-shadow: 0 4px 10px rgba(0,0,0,0.5);">`;
+            }
+            
+            htmlContent += `</div>`;
+            el.innerHTML = htmlContent;
             
             eventsContainer.prepend(el);
         }
