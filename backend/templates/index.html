@@ -6,6 +6,7 @@
     <title>ALIBEL Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         .feeds-grid {
             display: flex;
@@ -64,6 +65,11 @@
                 <h3>Verificaciones en Curso</h3>
                 <div class="stat-value verify-text" id="verifying-count">0</div>
             </div>
+            <div class="card stat-card" style="text-align: center;">
+                <h3>Conectar Celular</h3>
+                <div id="qrcode" style="display: inline-block; margin-top: 10px; background: white; padding: 5px; border-radius: 5px;"></div>
+                <div id="qr-url" style="font-size: 0.75rem; color: #888; margin-top: 5px;"></div>
+            </div>
         </section>
 
         <section class="video-feeds">
@@ -87,6 +93,18 @@
         const wsStatus = document.getElementById('ws-status');
         const wsText = document.getElementById('ws-text');
         const eventsContainer = document.getElementById('events-container');
+
+        // Dynamic QR Code Generation
+        const mobileUrl = window.location.origin + "/mobile";
+        document.getElementById('qr-url').innerText = mobileUrl;
+        new QRCode(document.getElementById("qrcode"), {
+            text: mobileUrl,
+            width: 80,
+            height: 80,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.L
+        });
 
         const state = {
             users: {},
