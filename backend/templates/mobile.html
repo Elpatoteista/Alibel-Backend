@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ALIBEL App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple-electric: #8000FF;
+            --blue-violet: #5A2EEA;
+            --blue-cobalt: #2271FF;
+            --cyan-intense: #00A3FF;
+            --cyan-neon: #00E5FF;
+            --bg-dark: #080410;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .app-bar {
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, var(--purple-electric), var(--cyan-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            z-index: 10;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+        .heart-icon {
+            font-size: 5rem;
+            color: rgba(255,255,255,0.2);
+            margin-bottom: 1rem;
+            transition: color 0.3s;
+            z-index: 2;
+        }
+        .heart-icon.active {
+            color: var(--cyan-neon);
+            text-shadow: 0 0 20px var(--cyan-neon);
+        }
+        .status-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2.5rem;
+            z-index: 2;
+        }
+        .toggle-btn {
+            background-color: var(--blue-violet);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(90, 46, 234, 0.4);
+            transition: all 0.3s;
+            z-index: 2;
+        }
+        .toggle-btn.active {
+            background-color: #ff3366;
+            box-shadow: 0 4px 15px rgba(255, 51, 102, 0.4);
+        }
+        
+        #camera-container {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+            opacity: 0.3;
+            display: none;
+        }
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #overlay-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        /* Verification Screen */
+        .verify-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-dark);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .verify-screen.active {
+            display: flex;
+        }
+        .warning-icon {
+            font-size: 5rem;
+            color: #ffaa00;
+            margin-bottom: 1rem;
+        }
+        .title-verify {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        .desc-verify {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 3rem;
+            padding: 0 2rem;
+        }
+        .ok-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple-electric), var(--cyan-intense));
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            box-shadow: 0 0 30px rgba(0, 163, 255, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            line-height: 1.3;
+            z-index: 101;
+        }
+        .simulation-note {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.8rem;
+            color: #666;
+            z-index: 2;
+        }
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            padding: 2rem;
+            gap: 1rem;
+        }
+        .login-screen.hidden { display: none; }
+        .login-logo {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            background: linear-gradient(90deg, var(--purple-electric), var(--cyan-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        .login-input {
+            width: 100%; max-width: 300px;
+            padding: 0.9rem 1.2rem;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            width: 100%; max-width: 300px;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--purple-electric), var(--blue-cobalt));
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .login-btn:active { opacity: 0.8; }
+        .login-toggle {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .login-error {
+            font-size: 0.85rem;
+            color: #ff5566;
+            min-height: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login / Register Screen -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-logo">ALIBEL</div>
+        <p style="color:rgba(255,255,255,0.6);margin-bottom:0.5rem" id="login-subtitle">Inicia sesión para comenzar</p>
+        <input class="login-input" type="text" id="login-username" placeholder="Nombre de usuario" autocomplete="username">
+        <input class="login-input" type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
+        <div class="login-error" id="login-error"></div>
+        <button class="login-btn" id="login-btn" onclick="submitAuth()">Ingresar</button>
+        <span class="login-toggle" id="login-toggle" onclick="toggleAuthMode()">¿No tienes cuenta? Regístrate</span>
+    </div>
+
+    <div class="app-bar">ALIBEL</div>
+    
+    <div class="content" id="home-screen">
+        <div id="camera-container">
+            <video id="camera-feed" autoplay playsinline muted></video>
+            <canvas id="overlay-canvas"></canvas>
+        </div>
+        <div class="heart-icon" id="icon">♥</div>
+        <div class="status-text" id="status">Monitoreo Pausado</div>
+        <button class="toggle-btn" id="toggle" onclick="toggleTracking()">Iniciar Monitoreo</button>
+        <div class="simulation-note">Versión Web (Simulador de UI)</div>
+    </div>
+
+    <div class="verify-screen" id="verify-screen">
+        <div class="warning-icon">⚠</div>
+        <div class="title-verify">¿ESTÁS BIEN?</div>
+        <div class="desc-verify">Hemos detectado una anomalía.<br>Responde en <span id="countdown">15</span> segundos.</div>
+        <button class="ok-btn" onclick="sendOk()">ESTOY<br>BIEN</button>
+    </div>
+
+    <!-- MediaPipe Vision JS -->
+    <script type="module">
+        import {
+            FaceLandmarker,
+            FilesetResolver
+        } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+
+        // =============================================
+        // CONFIGURACIÓN UMBRALES
+        // =============================================
+        const EYE_ASYMMETRY_SECONDS = 2;
+        const BOTH_EYES_CLOSED_SECONDS = 3;
+        const MOUTH_ASYMMETRY_SECONDS = 2;
+        const HEAD_TILT_ANGLE = 30;
+        const HEAD_TILT_SECONDS = 2;
+        const DARKNESS_SECONDS = 10; // Alerta si no detecta cara por oscuridad
+        const DARKNESS_BRIGHTNESS_THRESHOLD = 20; // 0-255
+
+        let faceLandmarker;
+        let lastVideoTime = -1;
+        let visionActive = false;
+        let baselineHeadAngle = null;
+        let baselineEAR = null;
+        let baselineMouth = null;
+        let baselineBbox = null; // {minX, minY, maxX, maxY} of calibrated face
+        let calibrationSamples = [];
+        let framesCalibrated = 0;
+        let noFaceStartTime = null; // for darkness detection
+
+        let timers = {
+            eyeAsym: null,
+            eyesClosed: null,
+            mouthAsym: null,
+            headTilt: null
+        };
+
+        // =============================================
+        // AUTH
+        // =============================================
+        let authMode = 'login'; // 'login' or 'register'
+        window.userId = null;
+        window.authToken = null;
+
+        // Try to restore session from localStorage
+        const savedToken = localStorage.getItem('alibel_token');
+        const savedUserId = localStorage.getItem('alibel_user_name');
+        if (savedToken && savedUserId) {
+            window.authToken = savedToken;
+            window.userId = savedUserId;
+            document.getElementById('login-screen').classList.add('hidden');
+        }
+
+        window.toggleAuthMode = function() {
+            authMode = authMode === 'login' ? 'register' : 'login';
+            document.getElementById('login-subtitle').innerText = authMode === 'login' ? 'Inicia sesión para comenzar' : 'Crea tu cuenta ALIBEL';
+            document.getElementById('login-btn').innerText = authMode === 'login' ? 'Ingresar' : 'Registrarse';
+            document.getElementById('login-toggle').innerText = authMode === 'login' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión';
+            document.getElementById('login-error').innerText = '';
+        }
+
+        window.submitAuth = async function() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            if (!username || !password) { errorEl.innerText = 'Completa todos los campos.'; return; }
+
+            const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await res.json();
+                if (!res.ok) { errorEl.innerText = data.detail || 'Error'; return; }
+                window.authToken = data.access_token;
+                window.userId = data.user_id;
+                localStorage.setItem('alibel_token', window.authToken);
+                localStorage.setItem('alibel_user_name', window.userId);
+                document.getElementById('login-screen').classList.add('hidden');
+            } catch(e) {
+                errorEl.innerText = 'Error de red. ¿Está el servidor activo?';
+            }
+        }
+
+        window.tracking = false;
+        window.ws = null;
+        window.verifyTimer = null;
+        window.countdownValue = 15;
+        window.heartbeatTimer = null;
+        window.cameraStream = null;
+
+        const video = document.getElementById("camera-feed");
+
+        // =============================================
+        // MATH HELPERS
+        // =============================================
+        function euclidean(p1, p2) {
+            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        }
+
+        function calculateEAR(landmarks, indices) {
+            const p1 = landmarks[indices[0]], p2 = landmarks[indices[1]], p3 = landmarks[indices[2]];
+            const p4 = landmarks[indices[3]], p5 = landmarks[indices[4]], p6 = landmarks[indices[5]];
+            const v1 = euclidean(p2, p6), v2 = euclidean(p3, p5), h = euclidean(p1, p4);
+            return h === 0 ? 0 : (v1 + v2) / (2.0 * h);
+        }
+
+        function calculateHeadTilt(landmarks) {
+            const p1 = landmarks[33], p2 = landmarks[263];
+            return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+        }
+
+        function calculateMouthAsymmetry(landmarks) {
+            const nose = landmarks[1], leftCorner = landmarks[61], rightCorner = landmarks[291];
+            const distLeft = leftCorner.y - nose.y, distRight = rightCorner.y - nose.y;
+            const avg = (Math.abs(distLeft) + Math.abs(distRight)) / 2.0;
+            return avg === 0 ? 0 : Math.abs(distLeft - distRight) / avg;
+        }
+
+        function getFaceBbox(landmarks) {
+            const xs = landmarks.map(p => p.x);
+            const ys = landmarks.map(p => p.y);
+            return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+        }
+
+        function bboxIOU(a, b) {
+            const ix1 = Math.max(a.minX, b.minX), iy1 = Math.max(a.minY, b.minY);
+            const ix2 = Math.min(a.maxX, b.maxX), iy2 = Math.min(a.maxY, b.maxY);
+            const inter = Math.max(0, ix2 - ix1) * Math.max(0, iy2 - iy1);
+            const aA = (a.maxX - a.minX) * (a.maxY - a.minY);
+            const bA = (b.maxX - b.minX) * (b.maxY - b.minY);
+            return inter / (aA + bA - inter);
+        }
+
+        function getFrameBrightness(ctx, w, h) {
+            const data = ctx.getImageData(0, 0, w, h).data;
+            let sum = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                sum += 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+            }
+            return sum / (data.length / 4);
+        }
+
+        // =============================================
+        // MEDIAPIPE INIT
+        // =============================================
+        async function initMediaPipe() {
+            try {
+                document.getElementById('status').innerText = "Cargando IA Visual...";
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+                );
+                faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                        delegate: "GPU"
+                    },
+                    outputFaceBlendshapes: false,
+                    runningMode: "VIDEO",
+                    numFaces: 1
+                });
+                document.getElementById('status').innerText = "Monitoreo Pausado";
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = "Error IA Visual";
+            }
+        }
+        initMediaPipe();
+
+        window.connectWS = function() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            window.ws = new WebSocket(`${protocol}//${location.host}/ws/${window.userId}`);
+            window.ws.onmessage = (event) => {
+                // The client opens the verify screen locally; ignore server-side requests.
+            };
+            window.heartbeatTimer = setInterval(() => {
+                if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+                    window.ws.send(JSON.stringify({type: 'heartbeat'}));
+                }
+            }, 5000);
+        }
+
+        window.startCamera = async function() {
+            try {
+                window.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = window.cameraStream;
+                document.getElementById('camera-container').style.display = 'block';
+
+                visionActive = true;
+                framesCalibrated = 0;
+                calibrationSamples = [];
+                baselineBbox = null;
+                noFaceStartTime = null;
+                timers = {eyeAsym: null, eyesClosed: null, mouthAsym: null, headTilt: null};
+
+                video.addEventListener("loadeddata", predictWebcam);
+            } catch (err) {
+                console.error("Error al acceder a la cámara:", err);
+                document.getElementById('status').innerText = "Error: Sin permiso de cámara";
+            }
+        }
+
+        let lastStreamTime = 0;
+        const canvas = document.getElementById("overlay-canvas");
+        const ctx = canvas.getContext("2d");
+
+        async function predictWebcam() {
+            if (!visionActive || !faceLandmarker) return;
+
+            if (lastVideoTime !== video.currentTime) {
+                lastVideoTime = video.currentTime;
+
+                if (canvas.width !== video.videoWidth) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+
+                const results = faceLandmarker.detectForVideo(video, Date.now());
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                    noFaceStartTime = null; // face found — reset darkness timer
+
+                    // --- Face Bbox Lock: Find the face closest to calibrated position ---
+                    let landmarks = results.faceLandmarks[0];
+                    if (results.faceLandmarks.length > 1 && baselineBbox) {
+                        let bestIOU = -1;
+                        for (const fl of results.faceLandmarks) {
+                            const iou = bboxIOU(baselineBbox, getFaceBbox(fl));
+                            if (iou > bestIOU) { bestIOU = iou; landmarks = fl; }
+                        }
+                    }
+
+                    // Draw key points
+                    ctx.fillStyle = "rgba(51, 255, 153, 0.9)";
+                    const drawIndices = [33, 160, 158, 133, 153, 144, 362, 385, 387, 263, 373, 380, 61, 291, 1];
+                    drawIndices.forEach(i => {
+                        const pt = landmarks[i];
+                        ctx.beginPath();
+                        ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                    });
+
+                    // Draw calibration box if calibrating
+                    if (framesCalibrated < 90 && framesCalibrated > 0) {
+                        const bbox = getFaceBbox(landmarks);
+                        ctx.strokeStyle = "rgba(0, 229, 255, 0.7)";
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(bbox.minX * canvas.width, bbox.minY * canvas.height,
+                            (bbox.maxX - bbox.minX) * canvas.width, (bbox.maxY - bbox.minY) * canvas.height);
+                    }
+
+                    checkAnomalies(landmarks);
+                } else {
+                    // No face detected
+                    timers = {eyeAsym: null, eyesClosed: null, mouthAsym: null, headTilt: null};
+
+                    // Darkness detection
+                    if (framesCalibrated >= 90) { // Only after calibration
+                        const now = Date.now();
+                        if (!noFaceStartTime) noFaceStartTime = now;
+                        const elapsed = (now - noFaceStartTime) / 1000;
+
+                        if (elapsed >= DARKNESS_SECONDS) {
+                            const brightness = getFrameBrightness(ctx, canvas.width || 320, canvas.height || 240);
+                            if (brightness < DARKNESS_BRIGHTNESS_THRESHOLD) {
+                                triggerAnomaly("Alerta Técnica: Cámara sin visibilidad (Oscuridad)");
+                            } else {
+                                // Face just left frame, not darkness — reset
+                                noFaceStartTime = null;
+                            }
+                        }
+                    }
+                }
+
+                // Send video frame over WS (~25 fps)
+                const now = Date.now();
+                if (now - lastStreamTime > 40 && window.ws && window.ws.readyState === WebSocket.OPEN) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = 320;
+                    tempCanvas.height = 240;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(video, 0, 0, 320, 240);
+                    tempCtx.drawImage(canvas, 0, 0, 320, 240);
+
+                    const base64Frame = tempCanvas.toDataURL('image/jpeg', 0.4);
+                    window.ws.send(JSON.stringify({
+                        type: 'video_frame',
+                        frame: base64Frame
+                    }));
+                    lastStreamTime = now;
+                }
+            }
+            if (visionActive) {
+                window.requestAnimationFrame(predictWebcam);
+            }
+        }
+
+        function checkAnomalies(landmarks) {
+            if (document.getElementById('verify-screen').classList.contains('active')) return;
+
+            const earLeft = calculateEAR(landmarks, [33, 160, 158, 133, 153, 144]);
+            const earRight = calculateEAR(landmarks, [362, 385, 387, 263, 373, 380]);
+            const mouthAsym = calculateMouthAsymmetry(landmarks);
+            const headTilt = calculateHeadTilt(landmarks);
+
+            // --- Calibration Phase (90 frames ≈ 3 seconds) ---
+            if (framesCalibrated < 90) {
+                const bbox = getFaceBbox(landmarks);
+                document.getElementById('status').innerText = `Calibrando... (${Math.round(framesCalibrated/90*100)}%)`;
+                calibrationSamples.push({
+                    ear: (earLeft + earRight) / 2.0,
+                    mouth: mouthAsym,
+                    tilt: headTilt,
+                    bbox: bbox
+                });
+                framesCalibrated++;
+
+                if (framesCalibrated === 90) {
+                    baselineEAR = calibrationSamples.reduce((sum, val) => sum + val.ear, 0) / 90;
+                    baselineMouth = calibrationSamples.reduce((sum, val) => sum + val.mouth, 0) / 90;
+                    baselineHeadAngle = calibrationSamples.reduce((sum, val) => sum + val.tilt, 0) / 90;
+                    // Compute average bbox for face lock
+                    baselineBbox = {
+                        minX: calibrationSamples.reduce((s,v)=>s+v.bbox.minX,0)/90,
+                        maxX: calibrationSamples.reduce((s,v)=>s+v.bbox.maxX,0)/90,
+                        minY: calibrationSamples.reduce((s,v)=>s+v.bbox.minY,0)/90,
+                        maxY: calibrationSamples.reduce((s,v)=>s+v.bbox.maxY,0)/90,
+                    };
+                    document.getElementById('status').innerText = "Monitoreo Visual Activo ✓";
+                }
+                return;
+            }
+
+            // --- Dynamic thresholds based on the user's own baseline ---
+            const dynamicEarThreshold = baselineEAR * 0.70;
+            const dynamicMouthThreshold = baselineMouth + 0.12;
+
+            const leftOpen = earLeft > dynamicEarThreshold;
+            const rightOpen = earRight > dynamicEarThreshold;
+            const now = Date.now();
+
+            // 1. Eyes
+            if (leftOpen && rightOpen) {
+                timers.eyeAsym = null;
+                timers.eyesClosed = null;
+            } else if (!leftOpen && !rightOpen) {
+                timers.eyeAsym = null;
+                if (!timers.eyesClosed) timers.eyesClosed = now;
+                if ((now - timers.eyesClosed)/1000 >= BOTH_EYES_CLOSED_SECONDS) {
+                    triggerAnomaly("Pérdida de Conciencia / Desmayo (Ojos Cerrados)");
+                }
+            } else {
+                timers.eyesClosed = null;
+                if (!timers.eyeAsym) timers.eyeAsym = now;
+                if ((now - timers.eyeAsym)/1000 >= EYE_ASYMMETRY_SECONDS) {
+                    triggerAnomaly("Asimetría Ocular Crítica");
+                }
+            }
+
+            // 2. Mouth
+            if (mouthAsym >= dynamicMouthThreshold) {
+                if (!timers.mouthAsym) timers.mouthAsym = now;
+                if ((now - timers.mouthAsym)/1000 >= MOUTH_ASYMMETRY_SECONDS) {
+                    triggerAnomaly("Posible Parálisis Facial");
+                }
+            } else {
+                timers.mouthAsym = null;
+            }
+
+            // 3. Head Tilt
+            const diff = Math.abs(headTilt - baselineHeadAngle);
+            if (diff >= HEAD_TILT_ANGLE) {
+                if (!timers.headTilt) timers.headTilt = now;
+                if ((now - timers.headTilt)/1000 >= HEAD_TILT_SECONDS) {
+                    triggerAnomaly("Caída / Inclinación de Cabeza");
+                }
+            } else {
+                timers.headTilt = null;
+            }
+        }
+
+        async function triggerAnomaly(type) {
+            // Capture evidence snapshot
+            let evidenceImage = null;
+            try {
+                const snapCanvas = document.createElement('canvas');
+                snapCanvas.width = 480;
+                snapCanvas.height = 360;
+                const snapCtx = snapCanvas.getContext('2d');
+                snapCtx.drawImage(video, 0, 0, 480, 360);
+                snapCtx.drawImage(canvas, 0, 0, 480, 360);
+                evidenceImage = snapCanvas.toDataURL('image/jpeg', 0.85);
+            } catch(e) { console.warn("Could not capture evidence:", e); }
+
+            // Show verify screen immediately (no network dependency)
+            window.showVerify();
+
+            try {
+                await fetch('/api/anomaly', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: window.userId,
+                        anomaly_type: type,
+                        timestamp: Date.now() / 1000.0,
+                        evidence_image: evidenceImage
+                    })
+                });
+            } catch (err) {
+                console.error("Error enviando anomalía:", err);
+            }
+        }
+
+        window.stopCamera = function() {
+            visionActive = false;
+            if (window.cameraStream) {
+                window.cameraStream.getTracks().forEach(track => track.stop());
+                window.cameraStream = null;
+            }
+            video.srcObject = null;
+            document.getElementById('camera-container').style.display = 'none';
+        }
+
+        window.toggleTracking = function() {
+            if (!window.userId) {
+                document.getElementById('login-screen').classList.remove('hidden');
+                return;
+            }
+            window.tracking = !window.tracking;
+            const btn = document.getElementById('toggle');
+            const icon = document.getElementById('icon');
+            const status = document.getElementById('status');
+
+            if (window.tracking) {
+                btn.innerText = 'Detener';
+                btn.classList.add('active');
+                icon.classList.add('active');
+                status.innerText = 'Iniciando...';
+                if (!window.ws || window.ws.readyState === WebSocket.CLOSED) {
+                    window.connectWS();
+                }
+                window.startCamera();
+            } else {
+                btn.innerText = 'Iniciar Monitoreo';
+                btn.classList.remove('active');
+                icon.classList.remove('active');
+                status.innerText = 'Monitoreo Pausado';
+                window.stopCamera();
+                if (window.heartbeatTimer) clearInterval(window.heartbeatTimer);
+                if (window.ws) { window.ws.close(); window.ws = null; }
+            }
+        }
+
+        window.showVerify = function() {
+            if (window.verifyTimer) clearInterval(window.verifyTimer);
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('verify-screen').classList.add('active');
+            window.countdownValue = 15;
+            document.getElementById('countdown').innerText = window.countdownValue;
+
+            window.verifyTimer = setInterval(() => {
+                window.countdownValue--;
+                document.getElementById('countdown').innerText = window.countdownValue;
+                if (window.countdownValue <= 0) {
+                    clearInterval(window.verifyTimer);
+                    window.submitVerification('timeout');
+                }
+            }, 1000);
+        }
+
+        window.sendOk = function() {
+            clearInterval(window.verifyTimer);
+            window.submitVerification('ok');
+        }
+
+        window.submitVerification = async function(result) {
+            document.getElementById('verify-screen').classList.remove('active');
+            document.getElementById('home-screen').style.display = 'flex';
+
+            // Reset anomaly timers
+            timers = {eyeAsym: null, eyesClosed: null, mouthAsym: null, headTilt: null};
+            noFaceStartTime = null;
+
+            await fetch('/api/verify', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: window.userId, status: result})
+            });
+        }
+    </script>
+</body>
+</html>

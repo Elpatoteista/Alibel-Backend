@@ -1,0 +1,28 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Bases de datos y archivos multimedia temporales
+*.db
+backend/alibel.db
+backend/static/evidence/*.jpg
+backend/static/evidence/*.png
+
+# Certificados locales SSL (no subirlos por seguridad)
+*.pem
+cert.pem
+key.pem
+
+# Caché de Python
+__pycache__/
+*.pyc
+
+# Carpeta de Flutter (para ahorrar espacio en Render)
+app/
+.dart_tool/
+build/
+.pub-cache/
+
+# Otros
+.DS_Store

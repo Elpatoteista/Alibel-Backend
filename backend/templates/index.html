@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALIBEL Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .feeds-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .feed-container {
+            width: 320px;
+            height: 240px;
+            background: #111;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .feed-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .feed-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <div class="logo-text">ALIBEL</div>
+            <div class="logo-subtitle">Monitoring Dashboard</div>
+        </div>
+        <div class="status-indicator">
+            <span id="ws-status" class="dot disconnected"></span>
+            <span id="ws-text">Desconectado</span>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <section class="overview">
+            <div class="card stat-card">
+                <h3>Usuarios Activos</h3>
+                <div class="stat-value" id="active-users-count">0</div>
+            </div>
+            <div class="card stat-card">
+                <h3>Alertas Críticas</h3>
+                <div class="stat-value alert-text" id="critical-alerts-count">0</div>
+            </div>
+            <div class="card stat-card">
+                <h3>Verificaciones en Curso</h3>
+                <div class="stat-value verify-text" id="verifying-count">0</div>
+            </div>
+        </section>
+
+        <section class="video-feeds">
+            <h2>Cámaras en Vivo (IA Visual)</h2>
+            <div class="feeds-grid" id="feeds-grid">
+                <!-- Video feeds will appear here -->
+            </div>
+        </section>
+
+        <section class="events-log">
+            <h2>Registro en Tiempo Real</h2>
+            <div class="events-container" id="events-container">
+                <!-- Eventos aparecerán aquí -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${location.host}/ws/dashboard`);
+        const wsStatus = document.getElementById('ws-status');
+        const wsText = document.getElementById('ws-text');
+        const eventsContainer = document.getElementById('events-container');
+
+        const state = {
+            users: {},
+            alerts: 0,
+            verifying: 0
+        };
+
+        ws.onopen = () => {
+            wsStatus.className = 'dot connected';
+            wsText.innerText = 'Conectado (Tiempo Real)';
+            addEvent('Sistema', 'Dashboard conectado exitosamente.', 'info');
+        };
+
+        ws.onclose = () => {
+            wsStatus.className = 'dot disconnected';
+            wsText.innerText = 'Desconectado';
+            addEvent('Sistema', 'Conexión perdida con el servidor.', 'error');
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'dashboard_update') {
+                const userId = data.user_id;
+                const status = data.status; // verifying, normal, alert, offline
+                
+                if (status === 'offline') {
+                    delete state.users[userId];
+                    const container = document.getElementById(`feed-container-${userId}`);
+                    if (container) container.remove();
+                } else {
+                    state.users[userId] = status;
+                }
+                updateStats();
+
+                let msg = '';
+                let type = 'info';
+
+                if (status === 'verifying') {
+                    const anomaly = data.anomaly_type || 'Anomalía Detectada';
+                    msg = `ALERTA VISUAL: ${userId.substring(0,8)}... - ${anomaly}.`;
+                    type = 'warning';
+                } else if (status === 'alert') {
+                    msg = `ALERTA CRÍTICA: Usuario ${userId.substring(0,8)}... no respondió a la verificación.`;
+                    type = 'error';
+                } else if (status === 'normal') {
+                    msg = `Usuario ${userId.substring(0,8)}... verificado como normal.`;
+                    type = 'success';
+                } else if (status === 'offline') {
+                    msg = `Usuario ${userId.substring(0,8)}... detuvo el monitoreo (desconectado).`;
+                    type = 'info';
+                }
+
+                addEvent('Evento de Usuario', msg, type);
+            } else if (data.type === 'video_frame') {
+                const userId = data.user_id;
+                let img = document.getElementById(`feed-img-${userId}`);
+                if (!img) {
+                    const grid = document.getElementById('feeds-grid');
+                    const container = document.createElement('div');
+                    container.className = 'feed-container';
+                    container.id = `feed-container-${userId}`;
+                    
+                    img = document.createElement('img');
+                    img.id = `feed-img-${userId}`;
+                    
+                    const label = document.createElement('div');
+                    label.className = 'feed-label';
+                    label.innerText = userId;
+                    
+                    container.appendChild(img);
+                    container.appendChild(label);
+                    grid.appendChild(container);
+                }
+                img.src = data.frame;
+            }
+        };
+
+        function updateStats() {
+            let active = Object.keys(state.users).length;
+            let alerts = Object.values(state.users).filter(s => s === 'alert').length;
+            let verifying = Object.values(state.users).filter(s => s === 'verifying').length;
+
+            // Debug: Show exactly who is connected
+            let userList = Object.keys(state.users).join(", ");
+            document.getElementById('active-users-count').innerText = active + (active > 0 ? ` (${userList})` : "");
+            document.getElementById('critical-alerts-count').innerText = alerts;
+            document.getElementById('verifying-count').innerText = verifying;
+        }
+
+        function addEvent(title, description, type) {
+            const el = document.createElement('div');
+            el.className = `event-item ${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            
+            el.innerHTML = `
+                <div class="event-time">${time}</div>
+                <div class="event-details">
+                    <div class="event-title">${title}</div>
+                    <div class="event-desc">${description}</div>
+                </div>
+            `;
+            
+            eventsContainer.prepend(el);
+        }
+    </script>
+</body>
+</html>
